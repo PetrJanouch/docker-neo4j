@@ -195,11 +195,7 @@ for i in $( set | grep ^NEO4J_ | awk -F'=' '{print $1}' | sort -rn ); do
     # Don't allow settings with no value or settings that start with a number (neo4j converts settings to env variables and you cannot have an env variable that starts with a number)
     if [[ -n ${value} ]]; then
         if [[ ! "${setting}" =~ ^[0-9]+.*$ ]]; then
-            if grep -q -F "${setting}=" conf/neo4j.conf; then
-                # Remove any lines containing the setting already
-                sed --in-place "/${setting}=.*/d" conf/neo4j.conf
-            fi
-            # Then always append setting to file
+            # Append the setting; last-setting-wins, so this will override any prior config for this flag
             echo "${setting}=${value}" >> conf/neo4j.conf
         else
             echo >&2 "WARNING: ${setting} not written to conf file because settings that start with a number are not permitted"

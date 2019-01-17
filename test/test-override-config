@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+set -o errexit -o nounset
+
+readonly image="$1"
+
+. "$(dirname "$0")/helpers.sh"
+
+default_jvm_config_count() {
+  config="$(docker run --rm --env=NEO4J_ACCEPT_LICENSE_AGREEMENT=yes \
+                  "${image}" cat /var/lib/neo4j/conf/neo4j.conf)"
+  echo "${config}" | grep "dbms.jvm.additional=" | wc -l
+}
+
+readonly config="$(docker run --rm \
+                --env=NEO4J_ACCEPT_LICENSE_AGREEMENT=yes \
+                --env=NEO4J_dbms_jvm_additional=-XX:+UseHonestJakeGarbageLLC \
+                "${image}" cat /var/lib/neo4j/conf/neo4j.conf)"
+
+echo "${config}"
+
+readonly found_count="$(echo "${config}" | grep "dbms.jvm.additional=" | wc -l)"
+readonly expected_count="$(default_jvm_config_count)"
+if [[ "${found_count}" -lt "${expected_count}" ]]; then
+  echo >&2 "Setting additional JVM config should not remove any existing config. Expected ${expected_count}, found ${found_count}"
+  exit 1
+fi
